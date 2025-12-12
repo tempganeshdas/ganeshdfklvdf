@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carbon Footprint Calculator - ClimateAction Hub</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'forest': '#1B4332',
+                        'terracotta': '#D4A574',
+                        'ocean': '#2E86AB',
+                        'stone': '#F8F9FA',
+                        'alert-red': '#DC2626',
+                        'success-green': '#059669'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .calculator-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .input-group {
+            transition: all 0.3s ease;
+        }
+        
+        .input-group:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #1B4332 0%, #2E86AB 100%);
+        }
+        
+        .recommendation-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #059669;
+        }
+        
+        .recommendation-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+        
+        .progress-ring-circle {
+            transition: stroke-dashoffset 0.35s;
+            transform-origin: 50% 50%;
+        }
+        
+        .category-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        
+        .comparison-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .comparison-fill {
+            height: 100%;
+            transition: width 1s ease-out;
+        }
+    </style>
+</head>
+<body class="bg-stone font-inter">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-forest">🌍 ClimateAction Hub</h1>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="report.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Report Issue</a>
+                        <a href="education.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Learn</a>
+                        <a href="calculator.html" class="text-forest hover:text-ocean px-3 py-2 rounded-md text-sm font-medium border-b-2 border-forest">Calculator</a>
+                        <a href="map.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Maps</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-forest">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+                <a href="index.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="report.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Report Issue</a>
+                <a href="education.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Learn</a>
+                <a href="calculator.html" class="text-forest block px-3 py-2 rounded-md text-base font-medium">Calculator</a>
+                <a href="map.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Maps</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-20 pb-12 bg-gradient-to-br from-success-green to-forest text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">Carbon Footprint Calculator</h1>
+                <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+                    Measure your environmental impact and discover ways to reduce your carbon footprint
+                </p>
+                <div class="flex justify-center">
+                    <button id="start-calculation-btn" class="bg-white text-forest px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                        Calculate My Footprint
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Calculator Form -->
+    <section id="calculator-section" class="py-16 calculator-section hidden">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Input Form -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-lg p-8">
+                        <h2 class="text-2xl font-bold text-forest mb-6">Your Environmental Impact</h2>
+                        
+                        <form id="carbon-calculator-form">
+                            <!-- Energy Consumption -->
+                            <div class="input-group bg-gray-50 p-6 rounded-lg mb-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="category-icon bg-yellow-100 text-yellow-600 mr-4">⚡</div>
+                                    <h3 class="text-lg font-semibold text-forest">Energy Consumption</h3>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Monthly Electricity (kWh)</label>
+                                        <input type="number" id="electricity" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 500" min="0">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Monthly Gas (liters)</label>
+                                        <input type="number" id="gas" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 100" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Transportation -->
+                            <div class="input-group bg-gray-50 p-6 rounded-lg mb-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="category-icon bg-blue-100 text-blue-600 mr-4">🚗</div>
+                                    <h3 class="text-lg font-semibold text-forest">Transportation</h3>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Car Travel (km/week)</label>
+                                        <input type="number" id="car-km" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 200" min="0">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Flight Distance (km/year)</label>
+                                        <input type="number" id="flight-km" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 5000" min="0">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Public Transport (km/week)</label>
+                                        <input type="number" id="public-transport" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 50" min="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Diet -->
+                            <div class="input-group bg-gray-50 p-6 rounded-lg mb-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="category-icon bg-green-100 text-green-600 mr-4">🥗</div>
+                                    <h3 class="text-lg font-semibold text-forest">Diet</h3>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Meat Consumption (kg/week)</label>
+                                        <input type="number" id="meat-consumption" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 2" min="0" step="0.1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Dairy Consumption (kg/week)</label>
+                                        <input type="number" id="dairy-consumption" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 1.5" min="0" step="0.1">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Waste -->
+                            <div class="input-group bg-gray-50 p-6 rounded-lg mb-6">
+                                <div class="flex items-center mb-4">
+                                    <div class="category-icon bg-orange-100 text-orange-600 mr-4">🗑️</div>
+                                    <h3 class="text-lg font-semibold text-forest">Waste</h3>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Weekly Waste (kg)</label>
+                                    <input type="number" id="waste-kg" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="e.g., 15" min="0">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-forest text-white py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-colors text-lg">
+                                Calculate My Carbon Footprint
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div class="lg:col-span-1">
+                    <div id="results-panel" class="bg-white rounded-xl shadow-lg p-6 sticky top-24">
+                        <div class="text-center text-gray-500">
+                            <div class="w-24 h-24 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-lg font-medium">Your results will appear here</p>
+                            <p class="text-sm">Fill out the form to calculate your carbon footprint</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section id="comparison-section" class="py-16 bg-white hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">How Do You Compare?</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    See how your carbon footprint compares to regional and global averages
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Your Footprint -->
+                <div class="text-center scroll-reveal">
+                    <div class="w-32 h-32 mx-auto mb-4 relative">
+                        <svg class="progress-ring w-32 h-32">
+                            <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="transparent"></circle>
+                            <circle id="your-progress-circle" cx="64" cy="64" r="56" stroke="#059669" stroke-width="8" fill="transparent" 
+                                    stroke-dasharray="351.86" stroke-dashoffset="351.86" class="progress-ring-circle"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div id="your-total" class="text-2xl font-bold text-forest">0</div>
+                                <div class="text-xs text-gray-500">kg CO₂/year</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-forest mb-2">Your Footprint</h3>
+                    <p class="text-sm text-gray-600">Based on your lifestyle inputs</p>
+                </div>
+                
+                <!-- Regional Average -->
+                <div class="text-center scroll-reveal">
+                    <div class="w-32 h-32 mx-auto mb-4 relative">
+                        <svg class="progress-ring w-32 h-32">
+                            <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="transparent"></circle>
+                            <circle cx="64" cy="64" r="56" stroke="#D4A574" stroke-width="8" fill="transparent" 
+                                    stroke-dasharray="351.86" stroke-dashoffset="175.93" class="progress-ring-circle"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-terracotta">4,200</div>
+                                <div class="text-xs text-gray-500">kg CO₂/year</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-forest mb-2">Regional Average</h3>
+                    <p class="text-sm text-gray-600">Typical for your region</p>
+                </div>
+                
+                <!-- Global Average -->
+                <div class="text-center scroll-reveal">
+                    <div class="w-32 h-32 mx-auto mb-4 relative">
+                        <svg class="progress-ring w-32 h-32">
+                            <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="transparent"></circle>
+                            <circle cx="64" cy="64" r="56" stroke="#2E86AB" stroke-width="8" fill="transparent" 
+                                    stroke-dasharray="351.86" stroke-dashoffset="246.30" class="progress-ring-circle"></circle>
+                        </svg>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center">
+                                <div class="text-2xl font-bold text-ocean">5,000</div>
+                                <div class="text-xs text-gray-500">kg CO₂/year</div>
+                            </div>
+                        </div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-forest mb-2">Global Average</h3>
+                    <p class="text-sm text-gray-600">Worldwide average</p>
+                </div>
+            </div>
+            
+            <!-- Comparison Bars -->
+            <div class="mt-12 scroll-reveal">
+                <h3 class="text-xl font-semibold text-forest mb-6 text-center">Detailed Comparison</h3>
+                <div class="space-y-6 max-w-4xl mx-auto">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700">Your Footprint</span>
+                            <span id="your-percentage" class="text-sm font-medium text-success-green">0%</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div id="your-bar" class="comparison-fill bg-success-green" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700">Regional Average</span>
+                            <span class="text-sm font-medium text-terracotta">100%</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill bg-terracotta" style="width: 100%"></div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-gray-700">Global Average</span>
+                            <span class="text-sm font-medium text-ocean">119%</span>
+                        </div>
+                        <div class="comparison-bar">
+                            <div class="comparison-fill bg-ocean" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recommendations Section -->
+    <section id="recommendations-section" class="py-16 bg-gray-50 hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Personalized Recommendations</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Actionable steps to reduce your carbon footprint and environmental impact
+                </p>
+            </div>
+            
+            <div id="recommendations-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Recommendations will be dynamically generated here -->
+            </div>
+            
+            <div class="text-center mt-12 scroll-reveal">
+                <div class="bg-white rounded-xl shadow-lg p-8 max-w-2xl mx-auto">
+                    <h3 class="text-xl font-semibold text-forest mb-4">Track Your Progress</h3>
+                    <p class="text-gray-600 mb-6">
+                        Set goals and monitor your carbon footprint reduction over time. Small changes can make a big difference!
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <button class="bg-success-green text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                            Save My Results
+                        </button>
+                        <button class="bg-ocean text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                            Set Reduction Goals
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-forest text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4">🌍 ClimateAction Hub</h3>
+                <p class="text-white/80 mb-6">
+                    Empowering communities with environmental data and climate action tools
+                </p>
+                <div class="border-t border-white/20 pt-6">
+                    <p class="text-white/60 text-sm">
+                        © 2025 ClimateAction Hub. Built for environmental awareness and community action.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Carbon Calculator Page JavaScript
+        class CalculatorPage {
+            constructor() {
+                this.currentFootprint = 0;
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.setupScrollReveal();
+            }
+            
+            setupEventListeners() {
+                // Start calculation button
+                document.getElementById('start-calculation-btn').addEventListener('click', () => {
+                    document.getElementById('calculator-section').classList.remove('hidden');
+                    document.getElementById('calculator-section').scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                // Form submission
+                document.getElementById('carbon-calculator-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.calculateFootprint();
+                });
+                
+                // Real-time updates
+                const inputs = document.querySelectorAll('#carbon-calculator-form input');
+                inputs.forEach(input => {
+                    input.addEventListener('input', () => {
+                        this.updateLiveResults();
+                    });
+                });
+                
+                // Mobile menu
+                const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuBtn && mobileMenu) {
+                    mobileMenuBtn.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                    });
+                }
+            }
+            
+            updateLiveResults() {
+                // Quick calculation for live updates
+                const electricity = parseFloat(document.getElementById('electricity').value) || 0;
+                const carKm = parseFloat(document.getElementById('car-km').value) || 0;
+                const flightKm = parseFloat(document.getElementById('flight-km').value) || 0;
+                const meat = parseFloat(document.getElementById('meat-consumption').value) || 0;
+                
+                const quickEstimate = (electricity * 0.5 * 12) + // Electricity
+                                    (carKm * 0.21 * 52) + // Car
+                                    (flightKm * 0.25) + // Flights
+                                    (meat * 15.5 * 52); // Meat
+                
+                if (quickEstimate > 0) {
+                    this.updateResultsPanel(quickEstimate);
+                }
+            }
+            
+            calculateFootprint() {
+                const formData = this.getFormData();
+                const result = window.carbonCalculator.calculateFootprint(formData);
+                
+                this.currentFootprint = parseFloat(result.total);
+                this.displayResults(result);
+                this.showComparison();
+                this.generateRecommendations(result);
+                
+                // Scroll to results
+                document.getElementById('comparison-section').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            getFormData() {
+                return {
+                    electricity: parseFloat(document.getElementById('electricity').value) || 0,
+                    gas: parseFloat(document.getElementById('gas').value) || 0,
+                    carKm: parseFloat(document.getElementById('car-km').value) || 0,
+                    flightKm: parseFloat(document.getElementById('flight-km').value) || 0,
+                    publicTransportKm: parseFloat(document.getElementById('public-transport').value) || 0,
+                    meatConsumption: parseFloat(document.getElementById('meat-consumption').value) || 0,
+                    dairyConsumption: parseFloat(document.getElementById('dairy-consumption').value) || 0,
+                    wasteKg: parseFloat(document.getElementById('waste-kg').value) || 0
+                };
+            }
+            
+            updateResultsPanel(total) {
+                const panel = document.getElementById('results-panel');
+                panel.innerHTML = `
+                    <div class="text-center">
+                        <div class="w-32 h-32 mx-auto mb-4 relative">
+                            <svg class="progress-ring w-32 h-32">
+                                <circle cx="64" cy="64" r="56" stroke="#e5e7eb" stroke-width="8" fill="transparent"></circle>
+                                <circle cx="64" cy="64" r="56" stroke="#059669" stroke-width="8" fill="transparent" 
+                                        stroke-dasharray="351.86" stroke-dashoffset="${this.calculateOffset(total)}" class="progress-ring-circle"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-forest">${Math.round(total)}</div>
+                                    <div class="text-xs text-gray-500">kg CO₂/year</div>
+                                </div>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-semibold text-forest mb-2">Estimated Footprint</h3>
+                        <p class="text-sm text-gray-600">Complete all fields for accurate calculation</p>
+                    </div>
+                `;
+            }
+            
+            calculateOffset(value) {
+                const maxValue = 10000; // Max expected value
+                const circumference = 2 * Math.PI * 56;
+                const progress = Math.min(value / maxValue, 1);
+                return circumference * (1 - progress);
+            }
+            
+            displayResults(result) {
+                // Update main results
+                document.getElementById('your-total').textContent = Math.round(parseFloat(result.total));
+                
+                // Update progress circle
+                const circle = document.getElementById('your-progress-circle');
+                const offset = this.calculateOffset(parseFloat(result.total));
+                circle.style.strokeDashoffset = offset;
+                
+                // Update comparison percentage
+                const regionalAvg = 4200;
+                const percentage = Math.round((parseFloat(result.total) / regionalAvg) * 100);
+                document.getElementById('your-percentage').textContent = percentage + '%';
+                
+                // Update comparison bar
+                document.getElementById('your-bar').style.width = Math.min(percentage, 100) + '%';
+                
+                ClimateActionHub.showNotification('Carbon footprint calculated successfully!', 'success');
+            }
+            
+            showComparison() {
+                document.getElementById('comparison-section').classList.remove('hidden');
+                document.getElementById('recommendations-section').classList.remove('hidden');
+                
+                // Animate comparison bars
+                setTimeout(() => {
+                    anime({
+                        targets: '.comparison-fill',
+                        width: function(el) {
+                            return el.style.width;
+                        },
+                        duration: 1500,
+                        easing: 'easeOutCubic',
+                        delay: anime.stagger(200)
+                    });
+                }, 100);
+            }
+            
+            generateRecommendations(result) {
+                const grid = document.getElementById('recommendations-grid');
+                grid.innerHTML = '';
+                
+                result.recommendations.forEach(rec => {
+                    const card = document.createElement('div');
+                    card.className = 'recommendation-card bg-white p-6 rounded-lg shadow-md';
+                    
+                    const typeIcons = {
+                        priority: '🎯',
+                        transport: '🚗',
+                        energy: '⚡',
+                        diet: '🥗',
+                        waste: '🗑️'
+                    };
+                    
+                    card.innerHTML = `
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 mr-4">
+                                <div class="w-12 h-12 bg-success-green bg-opacity-10 rounded-full flex items-center justify-center text-xl">
+                                    ${typeIcons[rec.type] || '💡'}
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="text-lg font-semibold text-forest mb-2">${rec.title}</h3>
+                                <p class="text-gray-600 mb-4">${rec.description}</p>
+                                <div class="space-y-2">
+                                    ${rec.actions.map(action => `
+                                        <div class="flex items-center text-sm text-gray-700">
+                                            <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                            </svg>
+                                            ${action}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    grid.appendChild(card);
+                });
+                
+                // Add some default recommendations if none were generated
+                if (result.recommendations.length === 0) {
+                    const defaultRecs = [
+                        {
+                            type: 'energy',
+                            title: 'Reduce Energy Consumption',
+                            description: 'Simple changes can significantly reduce your energy-related emissions.',
+                            actions: ['Switch to LED bulbs', 'Unplug unused electronics', 'Use programmable thermostats']
+                        },
+                        {
+                            type: 'transport',
+                            title: 'Sustainable Transportation',
+                            description: 'Transportation choices have a major impact on your carbon footprint.',
+                            actions: ['Use public transport when possible', 'Consider carpooling', 'Walk or bike for short trips']
+                        }
+                    ];
+                    
+                    defaultRecs.forEach(rec => {
+                        const card = document.createElement('div');
+                        card.className = 'recommendation-card bg-white p-6 rounded-lg shadow-md';
+                        card.innerHTML = `
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 mr-4">
+                                    <div class="w-12 h-12 bg-success-green bg-opacity-10 rounded-full flex items-center justify-center text-xl">
+                                        ${rec.type === 'energy' ? '⚡' : '🚗'}
+                                    </div>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="text-lg font-semibold text-forest mb-2">${rec.title}</h3>
+                                    <p class="text-gray-600 mb-4">${rec.description}</p>
+                                    <div class="space-y-2">
+                                        ${rec.actions.map(action => `
+                                            <div class="flex items-center text-sm text-gray-700">
+                                                <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                </svg>
+                                                ${action}
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        grid.appendChild(card);
+                    });
+                }
+            }
+            
+            setupScrollReveal() {
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                        }
+                    });
+                }, observerOptions);
+
+                document.querySelectorAll('.scroll-reveal').forEach(el => {
+                    observer.observe(el);
+                });
+            }
+        }
+        
+        // Initialize calculator page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new CalculatorPage();
+        });
+    </script>
+</body>
+</html>

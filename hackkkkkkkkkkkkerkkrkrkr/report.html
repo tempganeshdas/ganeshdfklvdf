@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community Environmental Reporting - ClimateAction Hub</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'forest': '#1B4332',
+                        'terracotta': '#D4A574',
+                        'ocean': '#2E86AB',
+                        'stone': '#F8F9FA',
+                        'alert-red': '#DC2626',
+                        'success-green': '#059669'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .form-step {
+            display: none;
+        }
+        
+        .form-step.active {
+            display: block;
+        }
+        
+        .step-indicator {
+            transition: all 0.3s ease;
+        }
+        
+        .step-indicator.active {
+            background-color: #059669;
+            color: white;
+        }
+        
+        .step-indicator.completed {
+            background-color: #1B4332;
+            color: white;
+        }
+        
+        .report-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .report-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .severity-high {
+            border-left: 4px solid #DC2626;
+        }
+        
+        .severity-medium {
+            border-left: 4px solid #D4A574;
+        }
+        
+        .severity-low {
+            border-left: 4px solid #059669;
+        }
+        
+        #map {
+            height: 400px;
+            border-radius: 0.75rem;
+        }
+        
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 0.5rem;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-stone font-inter">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-forest">🌍 ClimateAction Hub</h1>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="report.html" class="text-forest hover:text-ocean px-3 py-2 rounded-md text-sm font-medium border-b-2 border-forest">Report Issue</a>
+                        <a href="education.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Learn</a>
+                        <a href="calculator.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Calculator</a>
+                        <a href="map.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Maps</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-forest">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+                <a href="index.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="report.html" class="text-forest block px-3 py-2 rounded-md text-base font-medium">Report Issue</a>
+                <a href="education.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Learn</a>
+                <a href="calculator.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Calculator</a>
+                <a href="map.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Maps</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-20 pb-12 bg-gradient-to-br from-forest to-ocean text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">Community Environmental Reporting</h1>
+                <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+                    Help protect our environment by reporting issues in your community
+                </p>
+                <div class="flex justify-center">
+                    <button id="start-report-btn" class="bg-white text-forest px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                        Report an Issue
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Reporting Form -->
+    <section id="reporting-section" class="py-16 bg-white hidden">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-xl shadow-lg p-8">
+                <!-- Progress Indicator -->
+                <div class="flex justify-center mb-8">
+                    <div class="flex items-center space-x-4">
+                        <div class="step-indicator active w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold bg-gray-200">1</div>
+                        <div class="w-16 h-1 bg-gray-200"></div>
+                        <div class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold bg-gray-200">2</div>
+                        <div class="w-16 h-1 bg-gray-200"></div>
+                        <div class="step-indicator w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold bg-gray-200">3</div>
+                    </div>
+                </div>
+
+                <form id="report-form">
+                    <!-- Step 1: Issue Details -->
+                    <div class="form-step active" id="step-1">
+                        <h2 class="text-2xl font-bold text-forest mb-6">Describe the Environmental Issue</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Issue Type</label>
+                                <select id="issue-type" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent">
+                                    <option value="">Select issue type</option>
+                                    <option value="pollution">Air/Water Pollution</option>
+                                    <option value="flooding">Flooding</option>
+                                    <option value="deforestation">Deforestation</option>
+                                    <option value="waste">Illegal Waste Dumping</option>
+                                    <option value="wildlife">Wildlife Threat</option>
+                                    <option value="noise">Noise Pollution</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Severity Level</label>
+                                <select id="severity" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent">
+                                    <option value="">Select severity</option>
+                                    <option value="low">Low - Minor concern</option>
+                                    <option value="medium">Medium - Moderate impact</option>
+                                    <option value="high">High - Immediate attention needed</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Issue Title</label>
+                            <input type="text" id="issue-title" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="Brief, descriptive title">
+                        </div>
+                        
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Detailed Description</label>
+                            <textarea id="issue-description" rows="4" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="Provide detailed information about the issue..."></textarea>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Upload Photos (Optional)</label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                <input type="file" id="photo-upload" accept="image/*" multiple class="hidden">
+                                <button type="button" id="upload-btn" class="text-forest hover:text-ocean">
+                                    <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                    <p class="mt-2 text-sm text-gray-600">Click to upload photos</p>
+                                </button>
+                                <div id="image-preview" class="mt-4 grid grid-cols-3 gap-4"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Location -->
+                    <div class="form-step" id="step-2">
+                        <h2 class="text-2xl font-bold text-forest mb-6">Mark the Location</h2>
+                        
+                        <div class="mb-6">
+                            <p class="text-gray-600 mb-4">Click on the map to mark the exact location of the issue, or use the button below to use your current location.</p>
+                            <button type="button" id="use-current-location" class="bg-ocean text-white px-6 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                                Use My Current Location
+                            </button>
+                        </div>
+                        
+                        <div id="location-map" class="rounded-lg overflow-hidden"></div>
+                        
+                        <div class="mt-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Additional Location Details</label>
+                            <input type="text" id="location-details" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="Landmarks, nearby addresses, or other helpful details">
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Contact & Submit -->
+                    <div class="form-step" id="step-3">
+                        <h2 class="text-2xl font-bold text-forest mb-6">Contact Information</h2>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Your Name (Optional)</label>
+                                <input type="text" id="reporter-name" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="Anonymous reporting available">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Email (Optional)</label>
+                                <input type="email" id="reporter-email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent" placeholder="For follow-up updates">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="anonymous-report" class="rounded border-gray-300 text-forest focus:ring-forest">
+                                <span class="ml-2 text-sm text-gray-700">Submit this report anonymously</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="updates-consent" class="rounded border-gray-300 text-forest focus:ring-forest">
+                                <span class="ml-2 text-sm text-gray-700">I consent to receive updates about this report's status</span>
+                            </label>
+                        </div>
+                        
+                        <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-blue-800">
+                                <strong>Privacy Notice:</strong> Your personal information will only be used for follow-up communications about this report. We respect your privacy and will not share your information with third parties.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Navigation Buttons -->
+                    <div class="flex justify-between mt-8">
+                        <button type="button" id="prev-btn" class="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors hidden">
+                            Previous
+                        </button>
+                        <div class="flex space-x-4">
+                            <button type="button" id="next-btn" class="px-6 py-3 bg-forest text-white rounded-lg hover:bg-opacity-90 transition-colors">
+                                Next
+                            </button>
+                            <button type="submit" id="submit-btn" class="px-6 py-3 bg-success-green text-white rounded-lg hover:bg-opacity-90 transition-colors hidden">
+                                Submit Report
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Community Reports -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Community Reports</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    See what environmental issues have been reported in your area and add your voice to important concerns
+                </p>
+            </div>
+            
+            <!-- Filter Controls -->
+            <div class="flex flex-wrap justify-center gap-4 mb-8 scroll-reveal">
+                <button class="filter-btn active bg-forest text-white px-4 py-2 rounded-lg transition-colors" data-filter="all">
+                    All Reports
+                </button>
+                <button class="filter-btn bg-white text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors" data-filter="pollution">
+                    Pollution
+                </button>
+                <button class="filter-btn bg-white text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors" data-filter="flooding">
+                    Flooding
+                </button>
+                <button class="filter-btn bg-white text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors" data-filter="waste">
+                    Waste
+                </button>
+                <button class="filter-btn bg-white text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition-colors" data-filter="wildlife">
+                    Wildlife
+                </button>
+            </div>
+            
+            <!-- Reports Grid -->
+            <div id="reports-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Reports will be dynamically loaded here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-forest text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4">🌍 ClimateAction Hub</h3>
+                <p class="text-white/80 mb-6">
+                    Empowering communities with environmental data and climate action tools
+                </p>
+                <div class="border-t border-white/20 pt-6">
+                    <p class="text-white/60 text-sm">
+                        © 2025 ClimateAction Hub. Built for environmental awareness and community action.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Reporting Page Specific JavaScript
+        class ReportingPage {
+            constructor() {
+                this.currentStep = 1;
+                this.totalSteps = 3;
+                this.selectedLocation = null;
+                this.map = null;
+                this.markers = [];
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.setupScrollReveal();
+                this.loadCommunityReports();
+                this.initializeMap();
+            }
+            
+            setupEventListeners() {
+                // Start report button
+                document.getElementById('start-report-btn').addEventListener('click', () => {
+                    document.getElementById('reporting-section').classList.remove('hidden');
+                    document.getElementById('reporting-section').scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                // Form navigation
+                document.getElementById('next-btn').addEventListener('click', () => this.nextStep());
+                document.getElementById('prev-btn').addEventListener('click', () => this.prevStep());
+                
+                // Photo upload
+                document.getElementById('upload-btn').addEventListener('click', () => {
+                    document.getElementById('photo-upload').click();
+                });
+                
+                document.getElementById('photo-upload').addEventListener('change', (e) => {
+                    this.handlePhotoUpload(e);
+                });
+                
+                // Current location
+                document.getElementById('use-current-location').addEventListener('click', () => {
+                    this.useCurrentLocation();
+                });
+                
+                // Form submission
+                document.getElementById('report-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitReport();
+                });
+                
+                // Filter buttons
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.filterReports(e.target.dataset.filter);
+                    });
+                });
+                
+                // Mobile menu
+                const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuBtn && mobileMenu) {
+                    mobileMenuBtn.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                    });
+                }
+            }
+            
+            nextStep() {
+                if (this.validateCurrentStep()) {
+                    if (this.currentStep < this.totalSteps) {
+                        this.currentStep++;
+                        this.updateStepDisplay();
+                    }
+                }
+            }
+            
+            prevStep() {
+                if (this.currentStep > 1) {
+                    this.currentStep--;
+                    this.updateStepDisplay();
+                }
+            }
+            
+            updateStepDisplay() {
+                // Hide all steps
+                document.querySelectorAll('.form-step').forEach(step => {
+                    step.classList.remove('active');
+                });
+                
+                // Show current step
+                document.getElementById(`step-${this.currentStep}`).classList.add('active');
+                
+                // Update step indicators
+                document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+                    indicator.classList.remove('active', 'completed');
+                    if (index + 1 < this.currentStep) {
+                        indicator.classList.add('completed');
+                    } else if (index + 1 === this.currentStep) {
+                        indicator.classList.add('active');
+                    }
+                });
+                
+                // Update buttons
+                const prevBtn = document.getElementById('prev-btn');
+                const nextBtn = document.getElementById('next-btn');
+                const submitBtn = document.getElementById('submit-btn');
+                
+                prevBtn.classList.toggle('hidden', this.currentStep === 1);
+                nextBtn.classList.toggle('hidden', this.currentStep === this.totalSteps);
+                submitBtn.classList.toggle('hidden', this.currentStep !== this.totalSteps);
+                
+                // Initialize map when on step 2
+                if (this.currentStep === 2 && this.map) {
+                    setTimeout(() => {
+                        this.map.invalidateSize();
+                    }, 100);
+                }
+            }
+            
+            validateCurrentStep() {
+                if (this.currentStep === 1) {
+                    const issueType = document.getElementById('issue-type').value;
+                    const severity = document.getElementById('severity').value;
+                    const title = document.getElementById('issue-title').value.trim();
+                    const description = document.getElementById('issue-description').value.trim();
+                    
+                    if (!issueType || !severity || !title || !description) {
+                        ClimateActionHub.showNotification('Please fill in all required fields', 'warning');
+                        return false;
+                    }
+                } else if (this.currentStep === 2) {
+                    if (!this.selectedLocation) {
+                        ClimateActionHub.showNotification('Please select a location on the map', 'warning');
+                        return false;
+                    }
+                }
+                return true;
+            }
+            
+            handlePhotoUpload(event) {
+                const files = event.target.files;
+                const previewContainer = document.getElementById('image-preview');
+                previewContainer.innerHTML = '';
+                
+                Array.from(files).forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.className = 'image-preview';
+                            previewContainer.appendChild(img);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+            
+            useCurrentLocation() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            this.setMapLocation(lat, lng);
+                            ClimateActionHub.showNotification('Location detected successfully', 'success');
+                        },
+                        (error) => {
+                            ClimateActionHub.showNotification('Unable to get your location. Please click on the map instead.', 'warning');
+                        }
+                    );
+                } else {
+                    ClimateActionHub.showNotification('Geolocation is not supported by this browser', 'warning');
+                }
+            }
+            
+            initializeMap() {
+                if (typeof L === 'undefined') return;
+                
+                this.map = L.map('location-map').setView([40.7128, -74.0060], 12);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(this.map);
+                
+                this.map.on('click', (e) => {
+                    this.setMapLocation(e.latlng.lat, e.latlng.lng);
+                });
+            }
+            
+            setMapLocation(lat, lng) {
+                // Clear existing markers
+                this.markers.forEach(marker => {
+                    this.map.removeLayer(marker);
+                });
+                this.markers = [];
+                
+                // Add new marker
+                const marker = L.marker([lat, lng]).addTo(this.map);
+                this.markers.push(marker);
+                
+                // Store location
+                this.selectedLocation = { lat, lng };
+                
+                // Center map on marker
+                this.map.setView([lat, lng], 15);
+            }
+            
+            submitReport() {
+                const formData = {
+                    type: document.getElementById('issue-type').value,
+                    severity: document.getElementById('severity').value,
+                    title: document.getElementById('issue-title').value,
+                    description: document.getElementById('issue-description').value,
+                    location: this.selectedLocation,
+                    locationDetails: document.getElementById('location-details').value,
+                    reporterName: document.getElementById('reporter-name').value,
+                    reporterEmail: document.getElementById('reporter-email').value,
+                    anonymous: document.getElementById('anonymous-report').checked,
+                    updatesConsent: document.getElementById('updates-consent').checked,
+                    timestamp: new Date()
+                };
+                
+                // Add to community reports
+                const newReport = window.communityReporting.addReport(formData);
+                
+                // Show success message
+                ClimateActionHub.showNotification('Report submitted successfully! Thank you for helping protect our environment.', 'success');
+                
+                // Reset form
+                this.resetForm();
+                
+                // Reload community reports
+                this.loadCommunityReports();
+                
+                // Scroll to community reports
+                document.querySelector('#reports-grid').scrollIntoView({ behavior: 'smooth' });
+            }
+            
+            resetForm() {
+                document.getElementById('report-form').reset();
+                this.currentStep = 1;
+                this.selectedLocation = null;
+                this.updateStepDisplay();
+                document.getElementById('reporting-section').classList.add('hidden');
+                document.getElementById('image-preview').innerHTML = '';
+                
+                // Clear map markers
+                if (this.markers.length > 0) {
+                    this.markers.forEach(marker => {
+                        this.map.removeLayer(marker);
+                    });
+                    this.markers = [];
+                }
+            }
+            
+            loadCommunityReports() {
+                const reports = window.communityReporting.reports;
+                const grid = document.getElementById('reports-grid');
+                
+                grid.innerHTML = '';
+                
+                reports.forEach(report => {
+                    const reportCard = this.createReportCard(report);
+                    grid.appendChild(reportCard);
+                });
+            }
+            
+            createReportCard(report) {
+                const card = document.createElement('div');
+                card.className = `report-card bg-white rounded-lg shadow-md overflow-hidden severity-${report.severity}`;
+                card.dataset.type = report.type;
+                
+                const severityColors = {
+                    high: 'bg-red-100 text-red-800',
+                    medium: 'bg-yellow-100 text-yellow-800',
+                    low: 'bg-green-100 text-green-800'
+                };
+                
+                const typeIcons = {
+                    pollution: '🏭',
+                    flooding: '🌊',
+                    deforestation: '🌳',
+                    waste: '🗑️',
+                    wildlife: '🦅',
+                    noise: '🔊',
+                    other: '⚠️'
+                };
+                
+                card.innerHTML = `
+                    <div class="p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center">
+                                <span class="text-2xl mr-2">${typeIcons[report.type] || typeIcons.other}</span>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">${report.title}</h3>
+                                    <span class="inline-block px-2 py-1 text-xs font-semibold rounded-full ${severityColors[report.severity]}">
+                                        ${report.severity.toUpperCase()}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <p class="text-gray-600 mb-4">${report.description}</p>
+                        
+                        <div class="flex items-center justify-between text-sm text-gray-500">
+                            <span>📍 ${report.locationDetails || 'Location marked on map'}</span>
+                            <span>📅 ${new Date(report.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
+                            <button class="upvote-btn flex items-center text-ocean hover:text-forest transition-colors" data-report-id="${report.id}">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L9 6v4m-2 4h2m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2z"></path>
+                                </svg>
+                                <span>${report.upvotes}</span>
+                            </button>
+                            <span class="text-xs text-gray-500">Status: ${report.status}</span>
+                        </div>
+                    </div>
+                `;
+                
+                // Add upvote functionality
+                card.querySelector('.upvote-btn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const newUpvotes = window.communityReporting.upvoteReport(report.id);
+                    card.querySelector('.upvote-btn span').textContent = newUpvotes;
+                    
+                    // Animate upvote
+                    anime({
+                        targets: card.querySelector('.upvote-btn'),
+                        scale: [1, 1.2, 1],
+                        duration: 300,
+                        easing: 'easeInOutQuad'
+                    });
+                });
+                
+                return card;
+            }
+            
+            filterReports(filter) {
+                const cards = document.querySelectorAll('.report-card');
+                const buttons = document.querySelectorAll('.filter-btn');
+                
+                // Update button states
+                buttons.forEach(btn => {
+                    btn.classList.remove('active', 'bg-forest', 'text-white');
+                    btn.classList.add('bg-white', 'text-gray-600');
+                });
+                
+                const activeBtn = document.querySelector(`[data-filter="${filter}"]`);
+                activeBtn.classList.add('active', 'bg-forest', 'text-white');
+                activeBtn.classList.remove('bg-white', 'text-gray-600');
+                
+                // Filter cards
+                cards.forEach(card => {
+                    if (filter === 'all' || card.dataset.type === filter) {
+                        card.style.display = 'block';
+                        anime({
+                            targets: card,
+                            opacity: [0, 1],
+                            translateY: [20, 0],
+                            duration: 400,
+                            easing: 'easeOutCubic'
+                        });
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+            
+            setupScrollReveal() {
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                        }
+                    });
+                }, observerOptions);
+
+                document.querySelectorAll('.scroll-reveal').forEach(el => {
+                    observer.observe(el);
+                });
+            }
+        }
+        
+        // Initialize reporting page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new ReportingPage();
+        });
+    </script>
+</body>
+</html>

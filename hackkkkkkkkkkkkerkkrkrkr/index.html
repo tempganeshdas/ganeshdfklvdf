@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClimateAction Hub - Real-time Environmental Dashboard</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css">
+    <script src="https://unpkg.com/splitting@1.0.6/dist/splitting.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/splitting@1.0.6/dist/splitting.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'forest': '#1B4332',
+                        'terracotta': '#D4A574',
+                        'ocean': '#2E86AB',
+                        'stone': '#F8F9FA',
+                        'alert-red': '#DC2626',
+                        'success-green': '#059669'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .atmospheric-bg {
+            background: linear-gradient(135deg, #1B4332 0%, #2E86AB 50%, #D4A574 100%);
+            animation: atmosphericShift 20s ease-in-out infinite;
+        }
+        
+        @keyframes atmosphericShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .particle-system {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            animation: float 15s linear infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+        }
+        
+        .metric-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-8px) rotateX(5deg);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        
+        .alert-pulse {
+            animation: alertPulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes alertPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .data-stream {
+            font-family: 'JetBrains Mono', monospace;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            background-size: 200% 100%;
+            animation: dataStream 3s linear infinite;
+        }
+        
+        @keyframes dataStream {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-stone font-inter">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-forest">🌍 ClimateAction Hub</h1>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-forest hover:text-ocean px-3 py-2 rounded-md text-sm font-medium border-b-2 border-forest">Dashboard</a>
+                        <a href="report.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Report Issue</a>
+                        <a href="education.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Learn</a>
+                        <a href="calculator.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Calculator</a>
+                        <a href="map.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Maps</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-forest">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+                <a href="index.html" class="text-forest block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="report.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Report Issue</a>
+                <a href="education.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Learn</a>
+                <a href="calculator.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Calculator</a>
+                <a href="map.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Maps</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative min-h-screen atmospheric-bg overflow-hidden">
+        <div class="particle-system" id="particles"></div>
+        
+        <div class="relative z-10 pt-20 pb-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h1 class="text-4xl md:text-6xl font-bold text-white mb-6" data-splitting>
+                        Real-time Environmental Intelligence
+                    </h1>
+                    <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+                        Monitor, understand, and act on climate data with our comprehensive environmental dashboard
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                        <a href="report.html" class="bg-white text-forest px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                            Report Environmental Issue
+                        </a>
+                        <a href="calculator.html" class="bg-terracotta text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                            Calculate Carbon Footprint
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Data Banner -->
+        <div class="relative z-10 bg-black/20 backdrop-blur-sm">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex items-center justify-between text-white">
+                    <div class="flex items-center space-x-6">
+                        <div class="data-stream px-3 py-1 rounded">
+                            <span class="text-sm opacity-75">AQI:</span>
+                            <span id="aqi-value" class="font-mono font-bold">42</span>
+                            <span class="text-success-green">Good</span>
+                        </div>
+                        <div class="data-stream px-3 py-1 rounded">
+                            <span class="text-sm opacity-75">Temp:</span>
+                            <span id="temp-value" class="font-mono font-bold">22°C</span>
+                        </div>
+                        <div class="data-stream px-3 py-1 rounded">
+                            <span class="text-sm opacity-75">Humidity:</span>
+                            <span id="humidity-value" class="font-mono font-bold">65%</span>
+                        </div>
+                    </div>
+                    <div class="text-sm opacity-75">
+                        Last updated: <span id="last-updated">Just now</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Environmental Metrics Dashboard -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Live Environmental Dashboard</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Real-time monitoring of air quality, weather conditions, and environmental alerts
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <!-- Air Quality Card -->
+                <div class="metric-card bg-gradient-to-br from-success-green to-green-600 text-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Air Quality Index</h3>
+                        <div class="w-3 h-3 bg-white rounded-full opacity-75"></div>
+                    </div>
+                    <div class="text-3xl font-bold mb-2" id="aqi-display">42</div>
+                    <div class="text-sm opacity-90">Good - Safe for all activities</div>
+                    <div class="mt-4 h-2 bg-white/20 rounded-full">
+                        <div class="h-2 bg-white rounded-full" style="width: 42%"></div>
+                    </div>
+                </div>
+                
+                <!-- Temperature Card -->
+                <div class="metric-card bg-gradient-to-br from-ocean to-blue-600 text-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Temperature</h3>
+                        <div class="w-3 h-3 bg-white rounded-full opacity-75"></div>
+                    </div>
+                    <div class="text-3xl font-bold mb-2" id="temp-display">22°C</div>
+                    <div class="text-sm opacity-90">Optimal range</div>
+                    <div class="mt-4 h-2 bg-white/20 rounded-full">
+                        <div class="h-2 bg-white rounded-full" style="width: 73%"></div>
+                    </div>
+                </div>
+                
+                <!-- Humidity Card -->
+                <div class="metric-card bg-gradient-to-br from-terracotta to-orange-600 text-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Humidity</h3>
+                        <div class="w-3 h-3 bg-white rounded-full opacity-75"></div>
+                    </div>
+                    <div class="text-3xl font-bold mb-2" id="humidity-display">65%</div>
+                    <div class="text-sm opacity-90">Comfortable levels</div>
+                    <div class="mt-4 h-2 bg-white/20 rounded-full">
+                        <div class="h-2 bg-white rounded-full" style="width: 65%"></div>
+                    </div>
+                </div>
+                
+                <!-- UV Index Card -->
+                <div class="metric-card bg-gradient-to-br from-purple-600 to-purple-700 text-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">UV Index</h3>
+                        <div class="w-3 h-3 bg-white rounded-full opacity-75"></div>
+                    </div>
+                    <div class="text-3xl font-bold mb-2" id="uv-display">3</div>
+                    <div class="text-sm opacity-90">Moderate - Use sunscreen</div>
+                    <div class="mt-4 h-2 bg-white/20 rounded-full">
+                        <div class="h-2 bg-white rounded-full" style="width: 30%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alert Section -->
+            <div class="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-r-lg mb-8 scroll-reveal">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-lg font-medium text-yellow-800">Environmental Alert</h3>
+                        <p class="text-yellow-700 mt-1">
+                            Moderate air quality expected tomorrow due to increased traffic. Consider limiting outdoor activities during peak hours.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-lg border scroll-reveal">
+                    <h3 class="text-xl font-semibold text-forest mb-4">24-Hour Air Quality Trend</h3>
+                    <div id="aqi-chart" style="height: 300px;"></div>
+                </div>
+                
+                <div class="bg-white p-6 rounded-xl shadow-lg border scroll-reveal">
+                    <h3 class="text-xl font-semibold text-forest mb-4">Temperature & Humidity</h3>
+                    <div id="weather-chart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Take Climate Action</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Every action counts. Use our tools to measure, reduce, and report your environmental impact.
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Report Issue -->
+                <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow scroll-reveal">
+                    <div class="w-16 h-16 bg-alert-red rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-forest mb-4 text-center">Report Environmental Issue</h3>
+                    <p class="text-gray-600 mb-6 text-center">
+                        Help your community by reporting pollution, flooding, or other environmental concerns.
+                    </p>
+                    <a href="report.html" class="block w-full bg-alert-red text-white text-center py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                        Report Issue
+                    </a>
+                </div>
+                
+                <!-- Carbon Calculator -->
+                <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow scroll-reveal">
+                    <div class="w-16 h-16 bg-success-green rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-forest mb-4 text-center">Carbon Footprint Calculator</h3>
+                    <p class="text-gray-600 mb-6 text-center">
+                        Measure your environmental impact and get personalized recommendations for reduction.
+                    </p>
+                    <a href="calculator.html" class="block w-full bg-success-green text-white text-center py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                        Calculate Footprint
+                    </a>
+                </div>
+                
+                <!-- Interactive Map -->
+                <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow scroll-reveal">
+                    <div class="w-16 h-16 bg-ocean rounded-full flex items-center justify-center mb-6 mx-auto">
+                        <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-forest mb-4 text-center">Environmental Maps</h3>
+                    <p class="text-gray-600 mb-6 text-center">
+                        Explore interactive maps showing pollution levels, disaster zones, and community reports.
+                    </p>
+                    <a href="map.html" class="block w-full bg-ocean text-white text-center py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                        View Maps
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Environmental Image Carousel -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Climate Action in Action</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    See how communities worldwide are taking action against climate change
+                </p>
+            </div>
+            
+            <div class="splide scroll-reveal" id="climate-carousel">
+                <div class="splide__track">
+                    <ul class="splide__list">
+                        <li class="splide__slide">
+                            <div class="relative h-64 md:h-80 rounded-xl overflow-hidden">
+                                <img src="https://kimi-web-img.moonshot.cn/img/img.freepik.com/86461c51676b6e8cc5a3b61648d009cf61b28374.jpg" alt="Renewable Energy" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/40 flex items-end">
+                                    <div class="p-6 text-white">
+                                        <h3 class="text-xl font-semibold mb-2">Renewable Energy Revolution</h3>
+                                        <p class="text-sm opacity-90">Solar and wind farms powering sustainable futures</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="splide__slide">
+                            <div class="relative h-64 md:h-80 rounded-xl overflow-hidden">
+                                <img src="https://kimi-web-img.moonshot.cn/img/st.focusedcollection.com/b9fb81d276cb72e8983236919a1a5020b9734d72.jpg" alt="Tree Planting" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/40 flex items-end">
+                                    <div class="p-6 text-white">
+                                        <h3 class="text-xl font-semibold mb-2">Community Reforestation</h3>
+                                        <p class="text-sm opacity-90">Volunteers restoring local ecosystems</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="splide__slide">
+                            <div class="relative h-64 md:h-80 rounded-xl overflow-hidden">
+                                <img src="https://kimi-web-img.moonshot.cn/img/www.coloradohealthinstitute.org/be32c697c9173ab9f1d333601c4c3d44bc3c0abb.jpg" alt="Climate Resilience" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/40 flex items-end">
+                                    <div class="p-6 text-white">
+                                        <h3 class="text-xl font-semibold mb-2">Climate Resilience Planning</h3>
+                                        <p class="text-sm opacity-90">Building communities that adapt and thrive</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="splide__slide">
+                            <div class="relative h-64 md:h-80 rounded-xl overflow-hidden">
+                                <img src="https://kimi-web-img.moonshot.cn/img/socialistworker.co.uk/fb3efe57527db912b6ed6b120baa7d09fdde704b.jpg" alt="Climate Protest" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-black/40 flex items-end">
+                                    <div class="p-6 text-white">
+                                        <h3 class="text-xl font-semibold mb-2">Youth Climate Action</h3>
+                                        <p class="text-sm opacity-90">Young leaders driving global change</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-forest text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4">🌍 ClimateAction Hub</h3>
+                <p class="text-white/80 mb-6">
+                    Empowering communities with environmental data and climate action tools
+                </p>
+                <div class="border-t border-white/20 pt-6">
+                    <p class="text-white/60 text-sm">
+                        © 2025 ClimateAction Hub. Built for environmental awareness and community action.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+</body>
+</html>

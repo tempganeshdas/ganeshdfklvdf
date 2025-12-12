@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Climate Education Hub - ClimateAction Hub</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/typed.js/2.0.12/typed.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'forest': '#1B4332',
+                        'terracotta': '#D4A574',
+                        'ocean': '#2E86AB',
+                        'stone': '#F8F9FA',
+                        'alert-red': '#DC2626',
+                        'success-green': '#059669'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .expandable-section {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .expandable-section:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .expandable-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .expandable-content.expanded {
+            max-height: 500px;
+        }
+        
+        .cause-effect-card {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .cause-effect-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .solution-card {
+            border-left: 4px solid #059669;
+            transition: all 0.3s ease;
+        }
+        
+        .solution-card:hover {
+            transform: translateX(4px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .hero-bg {
+            background: linear-gradient(135deg, #1B4332 0%, #2E86AB 50%, #D4A574 100%);
+            animation: gradientShift 15s ease-in-out infinite;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .stat-counter {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: bold;
+        }
+        
+        .impact-visualization {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .impact-visualization::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+    </style>
+</head>
+<body class="bg-stone font-inter">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-forest">🌍 ClimateAction Hub</h1>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="report.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Report Issue</a>
+                        <a href="education.html" class="text-forest hover:text-ocean px-3 py-2 rounded-md text-sm font-medium border-b-2 border-forest">Learn</a>
+                        <a href="calculator.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Calculator</a>
+                        <a href="map.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Maps</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-forest">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+                <a href="index.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="report.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Report Issue</a>
+                <a href="education.html" class="text-forest block px-3 py-2 rounded-md text-base font-medium">Learn</a>
+                <a href="calculator.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Calculator</a>
+                <a href="map.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Maps</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-20 pb-16 hero-bg text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">Climate Education Hub</h1>
+                <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+                    Understanding climate change: causes, effects, and actionable solutions for a sustainable future
+                </p>
+                <div class="flex justify-center mb-12">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+                        <div>
+                            <div class="stat-counter text-3xl md:text-4xl font-bold mb-2" data-target="1.2">0</div>
+                            <div class="text-sm opacity-90">°C Global Warming</div>
+                        </div>
+                        <div>
+                            <div class="stat-counter text-3xl md:text-4xl font-bold mb-2" data-target="420">0</div>
+                            <div class="text-sm opacity-90">ppm CO₂ Concentration</div>
+                        </div>
+                        <div>
+                            <div class="stat-counter text-3xl md:text-4xl font-bold mb-2" data-target="2050">0</div>
+                            <div class="text-sm opacity-90">Net Zero Target Year</div>
+                        </div>
+                    </div>
+                </div>
+                <button id="start-learning-btn" class="bg-white text-forest px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                    Start Learning
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Climate Causes -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">What Causes Climate Change?</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Understanding the primary drivers of global warming and climate disruption
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Fossil Fuels -->
+                <div class="cause-effect-card p-8 rounded-xl cursor-pointer expandable-section scroll-reveal" data-section="fossil-fuels">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center text-2xl">🏭</div>
+                        <h3 class="text-xl font-semibold text-forest mb-2">Burning Fossil Fuels</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Coal, oil, and natural gas combustion releases massive amounts of CO₂ and other greenhouse gases into the atmosphere.
+                    </p>
+                    <div class="text-center">
+                        <span class="text-sm text-forest font-medium">Click to learn more ↓</span>
+                    </div>
+                    
+                    <div class="expandable-content mt-6">
+                        <div class="bg-white p-6 rounded-lg border">
+                            <h4 class="font-semibold text-forest mb-3">The Science Behind It</h4>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>• Fossil fuels store carbon that was trapped underground for millions of years</li>
+                                <li>• Burning releases this carbon as CO₂, CO, and other greenhouse gases</li>
+                                <li>• Transportation, electricity generation, and industry are major sources</li>
+                                <li>• Accounts for approximately 75% of global greenhouse gas emissions</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-red-50 rounded">
+                                <p class="text-sm text-red-800">
+                                    <strong>Impact:</strong> Global CO₂ levels have increased by over 40% since pre-industrial times
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deforestation -->
+                <div class="cause-effect-card p-8 rounded-xl cursor-pointer expandable-section scroll-reveal" data-section="deforestation">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-orange-100 rounded-full flex items-center justify-center text-2xl">🌳</div>
+                        <h3 class="text-xl font-semibold text-forest mb-2">Deforestation</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Forests act as carbon sinks, but widespread clearing reduces Earth's capacity to absorb CO₂ from the atmosphere.
+                    </p>
+                    <div class="text-center">
+                        <span class="text-sm text-forest font-medium">Click to learn more ↓</span>
+                    </div>
+                    
+                    <div class="expandable-content mt-6">
+                        <div class="bg-white p-6 rounded-lg border">
+                            <h4 class="font-semibold text-forest mb-3">Forest Loss Impact</h4>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>• Forests absorb ~2.4 billion tons of CO₂ annually</li>
+                                <li>• Amazon rainforest alone stores 150-200 billion tons of carbon</li>
+                                <li>• Agriculture, logging, and urban expansion drive deforestation</li>
+                                <li>• Reduces biodiversity and disrupts local climate patterns</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-orange-50 rounded">
+                                <p class="text-sm text-orange-800">
+                                    <strong>Scale:</strong> 10 million hectares of forest lost annually (equivalent to Iceland's area)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Industrial Emissions -->
+                <div class="cause-effect-card p-8 rounded-xl cursor-pointer expandable-section scroll-reveal" data-section="industry">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center text-2xl">🏗️</div>
+                        <h3 class="text-xl font-semibold text-forest mb-2">Industrial Emissions</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Manufacturing processes release greenhouse gases directly and consume large amounts of fossil fuel-based energy.
+                    </p>
+                    <div class="text-center">
+                        <span class="text-sm text-forest font-medium">Click to learn more ↓</span>
+                    </div>
+                    
+                    <div class="expandable-content mt-6">
+                        <div class="bg-white p-6 rounded-lg border">
+                            <h4 class="font-semibold text-forest mb-3">Industrial Processes</h4>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>• Cement production alone accounts for 8% of global CO₂ emissions</li>
+                                <li>• Steel, chemicals, and manufacturing are major contributors</li>
+                                <li>• Process emissions + energy consumption = total industrial footprint</li>
+                                <li>• Many industrial processes release non-CO₂ greenhouse gases</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-gray-50 rounded">
+                                <p class="text-sm text-gray-800">
+                                    <strong>Global Share:</strong> Industry contributes ~21% of total greenhouse gas emissions
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Agriculture -->
+                <div class="cause-effect-card p-8 rounded-xl cursor-pointer expandable-section scroll-reveal" data-section="agriculture">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center text-2xl">🐄</div>
+                        <h3 class="text-xl font-semibold text-forest mb-2">Agriculture & Livestock</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Farming produces methane from livestock and rice cultivation, plus nitrous oxide from fertilizers.
+                    </p>
+                    <div class="text-center">
+                        <span class="text-sm text-forest font-medium">Click to learn more ↓</span>
+                    </div>
+                    
+                    <div class="expandable-content mt-6">
+                        <div class="bg-white p-6 rounded-lg border">
+                            <h4 class="font-semibold text-forest mb-3">Agricultural Emissions</h4>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>• Methane from livestock digestion (enteric fermentation)</li>
+                                <li>• Methane from rice paddies and manure management</li>
+                                <li>• Nitrous oxide from synthetic fertilizers and soil management</li>
+                                <li>• CO₂ from agricultural machinery and land use changes</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-green-50 rounded">
+                                <p class="text-sm text-green-800">
+                                    <strong>Methane Facts:</strong> Agriculture produces ~40% of human-caused methane emissions
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Waste Management -->
+                <div class="cause-effect-card p-8 rounded-xl cursor-pointer expandable-section scroll-reveal" data-section="waste">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center text-2xl">🗑️</div>
+                        <h3 class="text-xl font-semibold text-forest mb-2">Waste Management</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Landfills produce methane as organic waste decomposes, while incineration releases CO₂ and other pollutants.
+                    </p>
+                    <div class="text-center">
+                        <span class="text-sm text-forest font-medium">Click to learn more ↓</span>
+                    </div>
+                    
+                    <div class="expandable-content mt-6">
+                        <div class="bg-white p-6 rounded-lg border">
+                            <h4 class="font-semibold text-forest mb-3">Waste Impact</h4>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>• Landfills are the 3rd largest source of human-related methane emissions</li>
+                                <li>• Organic waste decomposition produces methane in anaerobic conditions</li>
+                                <li>• Incineration releases CO₂, particulates, and toxic substances</li>
+                                <li>• Inadequate recycling increases the need for virgin material extraction</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-yellow-50 rounded">
+                                <p class="text-sm text-yellow-800">
+                                    <strong>Global Impact:</strong> Waste sector accounts for ~3% of global greenhouse gas emissions
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transportation -->
+                <div class="cause-effect-card p-8 rounded-xl cursor-pointer expandable-section scroll-reveal" data-section="transportation">
+                    <div class="text-center mb-6">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-blue-100 rounded-full flex items-center justify-center text-2xl">🚗</div>
+                        <h3 class="text-xl font-semibold text-forest mb-2">Transportation</h3>
+                    </div>
+                    <p class="text-gray-600 mb-4">
+                        Cars, trucks, ships, and planes burn fossil fuels, making transportation a major source of greenhouse gas emissions.
+                    </p>
+                    <div class="text-center">
+                        <span class="text-sm text-forest font-medium">Click to learn more ↓</span>
+                    </div>
+                    
+                    <div class="expandable-content mt-6">
+                        <div class="bg-white p-6 rounded-lg border">
+                            <h4 class="font-semibold text-forest mb-3">Transportation Emissions</h4>
+                            <ul class="space-y-2 text-sm text-gray-600">
+                                <li>• Road vehicles account for ~72% of transport emissions</li>
+                                <li>• Aviation contributes ~11% of transport emissions</li>
+                                <li>• Shipping produces ~14% of transport emissions</li>
+                                <li>• Transportation is the fastest-growing source of emissions globally</li>
+                            </ul>
+                            <div class="mt-4 p-3 bg-blue-50 rounded">
+                                <p class="text-sm text-blue-800">
+                                    <strong>Global Share:</strong> Transportation contributes ~16% of total greenhouse gas emissions
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Climate Effects -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Effects of Climate Change</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    The real-world impacts of climate change that we're already experiencing
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Temperature Rise -->
+                <div class="bg-white rounded-xl shadow-lg p-8 scroll-reveal">
+                    <div class="impact-visualization">
+                        <div class="flex items-center mb-6">
+                            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center text-2xl mr-4">🌡️</div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-forest">Rising Temperatures</h3>
+                                <p class="text-sm text-gray-600">Global average temperature increase</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Since 1880</span>
+                                <span class="stat-counter text-lg font-bold text-red-600">+1.2°C</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-red-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                Global temperatures have risen by approximately 1.2°C since pre-industrial times, with most warming occurring in the past 40 years.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sea Level Rise -->
+                <div class="bg-white rounded-xl shadow-lg p-8 scroll-reveal">
+                    <div class="impact-visualization">
+                        <div class="flex items-center mb-6">
+                            <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl mr-4">🌊</div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-forest">Sea Level Rise</h3>
+                                <p class="text-sm text-gray-600">Coastal flooding and erosion</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Since 1900</span>
+                                <span class="stat-counter text-lg font-bold text-blue-600">+21cm</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 35%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                Sea levels are rising at an accelerating rate, threatening coastal communities and low-lying areas worldwide.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Extreme Weather -->
+                <div class="bg-white rounded-xl shadow-lg p-8 scroll-reveal">
+                    <div class="impact-visualization">
+                        <div class="flex items-center mb-6">
+                            <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-2xl mr-4">🌪️</div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-forest">Extreme Weather</h3>
+                                <p class="text-sm text-gray-600">More frequent and intense events</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Hurricane intensity</span>
+                                <span class="stat-counter text-lg font-bold text-yellow-600">+25%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-yellow-500 h-2 rounded-full" style="width: 50%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                Heat waves, droughts, floods, and storms are becoming more frequent and severe in many regions.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biodiversity Loss -->
+                <div class="bg-white rounded-xl shadow-lg p-8 scroll-reveal">
+                    <div class="impact-visualization">
+                        <div class="flex items-center mb-6">
+                            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-2xl mr-4">🦋</div>
+                            <div>
+                                <h3 class="text-xl font-semibold text-forest">Biodiversity Loss</h3>
+                                <p class="text-sm text-gray-600">Species extinction and habitat loss</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm text-gray-600">Species at risk</span>
+                                <span class="stat-counter text-lg font-bold text-green-600">1M+</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: 70%"></div>
+                            </div>
+                            <p class="text-sm text-gray-600">
+                                Climate change is driving species extinction at rates 100-1,000 times faster than natural background rates.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Climate Solutions -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Climate Solutions</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Proven strategies and technologies to reduce emissions and build climate resilience
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Renewable Energy -->
+                <div class="solution-card bg-white p-8 rounded-xl shadow-lg scroll-reveal">
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-2xl mr-6 flex-shrink-0">☀️</div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-forest mb-3">Renewable Energy Transition</h3>
+                            <p class="text-gray-600 mb-4">
+                                Solar, wind, hydro, and other renewable sources can provide clean electricity without greenhouse gas emissions.
+                            </p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Solar costs have fallen 89% since 2010
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Wind energy is now the cheapest source of power in many regions
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Could supply 90% of electricity needs by 2050
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Energy Efficiency -->
+                <div class="solution-card bg-white p-8 rounded-xl shadow-lg scroll-reveal">
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center text-2xl mr-6 flex-shrink-0">💡</div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-forest mb-3">Energy Efficiency</h3>
+                            <p class="text-gray-600 mb-4">
+                                Using less energy to accomplish the same tasks reduces emissions while saving money and resources.
+                            </p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    LED lighting uses 75% less energy than incandescent bulbs
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Smart thermostats can reduce heating/cooling by 10-15%
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Building insulation can cut energy use by 30-50%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sustainable Transportation -->
+                <div class="solution-card bg-white p-8 rounded-xl shadow-lg scroll-reveal">
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center text-2xl mr-6 flex-shrink-0">🚊</div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-forest mb-3">Sustainable Transportation</h3>
+                            <p class="text-gray-600 mb-4">
+                                Electric vehicles, public transit, cycling, and walking can dramatically reduce transportation emissions.
+                            </p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    EVs produce 60-70% fewer emissions than gas cars
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Public transit reduces per-capita emissions by 45%
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Cycling and walking produce zero emissions
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nature-Based Solutions -->
+                <div class="solution-card bg-white p-8 rounded-xl shadow-lg scroll-reveal">
+                    <div class="flex items-start">
+                        <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-2xl mr-6 flex-shrink-0">🌱</div>
+                        <div>
+                            <h3 class="text-xl font-semibold text-forest mb-3">Nature-Based Solutions</h3>
+                            <p class="text-gray-600 mb-4">
+                                Forests, wetlands, and oceans naturally absorb CO₂ while providing multiple environmental benefits.
+                            </p>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Forests absorb 2.4 billion tons of CO₂ annually
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Wetlands store 30% of global soil carbon
+                                </div>
+                                <div class="flex items-center text-gray-700">
+                                    <svg class="w-4 h-4 mr-2 text-success-green" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    Reforestation could remove 5-10 Gt CO₂ per year
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="py-16 bg-gradient-to-br from-success-green to-forest text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold mb-6">Take Climate Action Today</h2>
+                <p class="text-xl text-white/90 mb-8 max-w-3xl mx-auto">
+                    Every action counts. Start your journey toward a more sustainable lifestyle with our practical tools and resources.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <a href="calculator.html" class="bg-white text-forest px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                        Calculate Your Footprint
+                    </a>
+                    <a href="report.html" class="bg-terracotta text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                        Report Environmental Issues
+                    </a>
+                    <a href="map.html" class="bg-ocean text-white px-8 py-3 rounded-lg font-semibold hover:bg-opacity-90 transition-colors">
+                        Explore Environmental Data
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-forest text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4">🌍 ClimateAction Hub</h3>
+                <p class="text-white/80 mb-6">
+                    Empowering communities with environmental data and climate action tools
+                </p>
+                <div class="border-t border-white/20 pt-6">
+                    <p class="text-white/60 text-sm">
+                        © 2025 ClimateAction Hub. Built for environmental awareness and community action.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Education Page JavaScript
+        class EducationPage {
+            constructor() {
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.setupScrollReveal();
+                this.animateCounters();
+                this.setupExpandableSections();
+            }
+            
+            setupEventListeners() {
+                // Start learning button
+                document.getElementById('start-learning-btn').addEventListener('click', () => {
+                    document.querySelector('#causes-section .scroll-reveal').scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                // Expandable sections
+                document.querySelectorAll('.expandable-section').forEach(section => {
+                    section.addEventListener('click', (e) => {
+                        this.toggleSection(e.currentTarget);
+                    });
+                });
+                
+                // Mobile menu
+                const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuBtn && mobileMenu) {
+                    mobileMenuBtn.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                    });
+                }
+            }
+            
+            setupExpandableSections() {
+                // Add visual indicators for expandable content
+                document.querySelectorAll('.expandable-section').forEach(section => {
+                    const content = section.querySelector('.expandable-content');
+                    if (content) {
+                        // Add chevron icon
+                        const chevron = document.createElement('div');
+                        chevron.className = 'text-center mt-4';
+                        chevron.innerHTML = '<svg class="w-6 h-6 mx-auto text-forest transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>';
+                        section.appendChild(chevron);
+                    }
+                });
+            }
+            
+            toggleSection(section) {
+                const content = section.querySelector('.expandable-content');
+                const chevron = section.querySelector('svg');
+                
+                if (content && chevron) {
+                    const isExpanded = content.classList.contains('expanded');
+                    
+                    if (isExpanded) {
+                        content.classList.remove('expanded');
+                        chevron.style.transform = 'rotate(0deg)';
+                    } else {
+                        // Close all other sections
+                        document.querySelectorAll('.expandable-content.expanded').forEach(expandedContent => {
+                            expandedContent.classList.remove('expanded');
+                            const otherSection = expandedContent.closest('.expandable-section');
+                            const otherChevron = otherSection.querySelector('svg');
+                            if (otherChevron) {
+                                otherChevron.style.transform = 'rotate(0deg)';
+                            }
+                        });
+                        
+                        // Open this section
+                        content.classList.add('expanded');
+                        chevron.style.transform = 'rotate(180deg)';
+                        
+                        // Scroll to section
+                        setTimeout(() => {
+                            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 100);
+                    }
+                }
+            }
+            
+            animateCounters() {
+                const counters = document.querySelectorAll('.stat-counter');
+                
+                const animateCounter = (counter) => {
+                    const target = parseFloat(counter.dataset.target);
+                    const duration = 2000;
+                    const increment = target / (duration / 16);
+                    let current = 0;
+                    
+                    const updateCounter = () => {
+                        current += increment;
+                        if (current < target) {
+                            if (target === 1.2) {
+                                counter.textContent = '+' + current.toFixed(1) + '°C';
+                            } else if (target === 420) {
+                                counter.textContent = Math.floor(current) + ' ppm';
+                            } else {
+                                counter.textContent = Math.floor(current);
+                            }
+                            requestAnimationFrame(updateCounter);
+                        } else {
+                            if (target === 1.2) {
+                                counter.textContent = '+' + target.toFixed(1) + '°C';
+                            } else if (target === 420) {
+                                counter.textContent = target + ' ppm';
+                            } else {
+                                counter.textContent = target;
+                            }
+                        }
+                    };
+                    
+                    updateCounter();
+                };
+                
+                // Intersection Observer for counter animation
+                const counterObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const counter = entry.target;
+                            animateCounter(counter);
+                            counterObserver.unobserve(counter);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                
+                counters.forEach(counter => {
+                    counterObserver.observe(counter);
+                });
+            }
+            
+            setupScrollReveal() {
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                        }
+                    });
+                }, observerOptions);
+
+                document.querySelectorAll('.scroll-reveal').forEach(el => {
+                    observer.observe(el);
+                });
+            }
+        }
+        
+        // Initialize education page when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new EducationPage();
+        });
+    </script>
+</body>
+</html>

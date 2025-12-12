@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Environmental Map - ClimateAction Hub</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'forest': '#1B4332',
+                        'terracotta': '#D4A574',
+                        'ocean': '#2E86AB',
+                        'stone': '#F8F9FA',
+                        'alert-red': '#DC2626',
+                        'success-green': '#059669'
+                    },
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                        'mono': ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .scroll-reveal.revealed {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #main-map {
+            height: 500px;
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .layer-control {
+            transition: all 0.3s ease;
+        }
+        
+        .layer-control:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .layer-control.active {
+            border-left: 4px solid #059669;
+            background-color: #f0fdf4;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #1B4332 0%, #2E86AB 100%);
+            color: white;
+        }
+        
+        .data-point {
+            transition: all 0.3s ease;
+        }
+        
+        .data-point:hover {
+            transform: scale(1.05);
+        }
+        
+        .search-box {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .filter-chip {
+            transition: all 0.3s ease;
+        }
+        
+        .filter-chip.active {
+            background-color: #059669;
+            color: white;
+        }
+        
+        .filter-chip:hover {
+            transform: translateY(-1px);
+        }
+        
+        .leaflet-popup-content-wrapper {
+            border-radius: 0.5rem;
+        }
+        
+        .custom-marker {
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+    </style>
+</head>
+<body class="bg-stone font-inter">
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full bg-white/90 backdrop-blur-md z-50 border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-forest">🌍 ClimateAction Hub</h1>
+                    </div>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="index.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Dashboard</a>
+                        <a href="report.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Report Issue</a>
+                        <a href="education.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Learn</a>
+                        <a href="calculator.html" class="text-gray-600 hover:text-forest px-3 py-2 rounded-md text-sm font-medium transition-colors">Calculator</a>
+                        <a href="map.html" class="text-forest hover:text-ocean px-3 py-2 rounded-md text-sm font-medium border-b-2 border-forest">Maps</a>
+                    </div>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-600 hover:text-forest">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t">
+                <a href="index.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Dashboard</a>
+                <a href="report.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Report Issue</a>
+                <a href="education.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Learn</a>
+                <a href="calculator.html" class="text-gray-600 hover:text-forest block px-3 py-2 rounded-md text-base font-medium">Calculator</a>
+                <a href="map.html" class="text-forest block px-3 py-2 rounded-md text-base font-medium">Maps</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pt-20 pb-12 bg-gradient-to-br from-ocean to-forest text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">Interactive Environmental Map</h1>
+                <p class="text-xl md:text-2xl text-white/90 mb-8 max-w-3xl mx-auto">
+                    Explore real-time environmental data, pollution hotspots, and community reports in your area
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Map Controls -->
+    <section class="py-8 bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                <!-- Search -->
+                <div class="search-box p-4 flex-1 max-w-md">
+                    <div class="relative">
+                        <input type="text" id="location-search" placeholder="Search for a location..." 
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-forest focus:border-transparent">
+                        <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </div>
+                </div>
+                
+                <!-- Filter Chips -->
+                <div class="flex flex-wrap gap-3">
+                    <button class="filter-chip active px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700" data-filter="all">
+                        All Data
+                    </button>
+                    <button class="filter-chip px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700" data-filter="aqi">
+                        Air Quality
+                    </button>
+                    <button class="filter-chip px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700" data-filter="disasters">
+                        Disasters
+                    </button>
+                    <button class="filter-chip px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700" data-filter="reports">
+                        Community Reports
+                    </button>
+                    <button class="filter-chip px-4 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700" data-filter="pollution">
+                        Pollution
+                    </button>
+                </div>
+                
+                <!-- Geolocation Button -->
+                <button id="geolocate-btn" class="bg-ocean text-white px-6 py-2 rounded-lg font-semibold hover:bg-opacity-90 transition-colors flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    My Location
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Map Section -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- Layer Controls -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-lg p-6 sticky top-24">
+                        <h3 class="text-lg font-semibold text-forest mb-4">Map Layers</h3>
+                        
+                        <div class="space-y-3">
+                            <div class="layer-control active p-4 rounded-lg border cursor-pointer" data-layer="aqi">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full bg-success-green mr-3"></div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Air Quality Index</h4>
+                                        <p class="text-sm text-gray-600">Real-time AQI data</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="layer-control p-4 rounded-lg border cursor-pointer" data-layer="disasters">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full bg-alert-red mr-3"></div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Disaster Zones</h4>
+                                        <p class="text-sm text-gray-600">Floods, fires, alerts</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="layer-control p-4 rounded-lg border cursor-pointer" data-layer="reports">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full bg-terracotta mr-3"></div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Community Reports</h4>
+                                        <p class="text-sm text-gray-600">User-reported issues</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="layer-control p-4 rounded-lg border cursor-pointer" data-layer="pollution">
+                                <div class="flex items-center">
+                                    <div class="w-4 h-4 rounded-full bg-purple-500 mr-3"></div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">Pollution Sources</h4>
+                                        <p class="text-sm text-gray-600">Industrial & waste sites</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Legend -->
+                        <div class="mt-8">
+                            <h4 class="font-medium text-gray-900 mb-4">Legend</h4>
+                            <div class="space-y-2 text-sm">
+                                <div class="legend-item">
+                                    <div class="legend-color bg-success-green"></div>
+                                    <span>Good AQI (0-50)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color bg-yellow-400"></div>
+                                    <span>Moderate AQI (51-100)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color bg-alert-red"></div>
+                                    <span>Unhealthy AQI (101+)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color bg-alert-red"></div>
+                                    <span>High Severity</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color bg-terracotta"></div>
+                                    <span>Medium Severity</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color bg-success-green"></div>
+                                    <span>Low Severity</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map -->
+                <div class="lg:col-span-3">
+                    <div class="bg-white rounded-xl shadow-lg p-6">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-xl font-semibold text-forest">Environmental Data Map</h2>
+                            <div class="flex items-center space-x-4 text-sm text-gray-600">
+                                <span>📍 Click markers for details</span>
+                                <span>🔄 Auto-refresh: <span id="refresh-timer">30s</span></span>
+                            </div>
+                        </div>
+                        <div id="main-map"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistics Dashboard -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Environmental Statistics</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Real-time insights from environmental monitoring across the region
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- Air Quality Card -->
+                <div class="stats-card p-6 rounded-xl text-center scroll-reveal">
+                    <div class="data-point">
+                        <div class="text-3xl mb-2">🌬️</div>
+                        <div class="text-2xl font-bold mb-1" id="avg-aqi">42</div>
+                        <div class="text-sm opacity-90">Average AQI</div>
+                        <div class="text-xs opacity-75 mt-1">Good Air Quality</div>
+                    </div>
+                </div>
+                
+                <!-- Active Alerts Card -->
+                <div class="stats-card p-6 rounded-xl text-center scroll-reveal">
+                    <div class="data-point">
+                        <div class="text-3xl mb-2">🚨</div>
+                        <div class="text-2xl font-bold mb-1" id="active-alerts">3</div>
+                        <div class="text-sm opacity-90">Active Alerts</div>
+                        <div class="text-xs opacity-75 mt-1">2 High Priority</div>
+                    </div>
+                </div>
+                
+                <!-- Community Reports Card -->
+                <div class="stats-card p-6 rounded-xl text-center scroll-reveal">
+                    <div class="data-point">
+                        <div class="text-3xl mb-2">👥</div>
+                        <div class="text-2xl font-bold mb-1" id="community-reports">47</div>
+                        <div class="text-sm opacity-90">Community Reports</div>
+                        <div class="text-xs opacity-75 mt-1">This Month</div>
+                    </div>
+                </div>
+                
+                <!-- Monitoring Stations Card -->
+                <div class="stats-card p-6 rounded-xl text-center scroll-reveal">
+                    <div class="data-point">
+                        <div class="text-3xl mb-2">📡</div>
+                        <div class="text-2xl font-bold mb-1" id="monitoring-stations">12</div>
+                        <div class="text-sm opacity-90">Monitoring Stations</div>
+                        <div class="text-xs opacity-75 mt-1">Active & Reporting</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 scroll-reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-forest mb-4">Recent Environmental Activity</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Latest updates from environmental monitoring and community reports
+                </p>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Activity Feed -->
+                <div class="bg-white rounded-xl shadow-lg p-6 scroll-reveal">
+                    <h3 class="text-lg font-semibold text-forest mb-4">Recent Activity</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-success-green rounded-full mt-2"></div>
+                            <div>
+                                <p class="text-sm text-gray-900"><strong>Air Quality Improved</strong> in Downtown area</p>
+                                <p class="text-xs text-gray-500">2 minutes ago</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-alert-red rounded-full mt-2"></div>
+                            <div>
+                                <p class="text-sm text-gray-900"><strong>Pollution Alert</strong> reported near Industrial Zone</p>
+                                <p class="text-xs text-gray-500">15 minutes ago</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-terracotta rounded-full mt-2"></div>
+                            <div>
+                                <p class="text-sm text-gray-900"><strong>Community Report</strong> - Flooding on Main Street</p>
+                                <p class="text-xs text-gray-500">32 minutes ago</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start space-x-3">
+                            <div class="w-2 h-2 bg-success-green rounded-full mt-2"></div>
+                            <div>
+                                <p class="text-sm text-gray-900"><strong>Monitoring Station</strong> #7 back online</p>
+                                <p class="text-xs text-gray-500">1 hour ago</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quick Chart -->
+                <div class="bg-white rounded-xl shadow-lg p-6 scroll-reveal">
+                    <h3 class="text-lg font-semibold text-forest mb-4">24-Hour AQI Trend</h3>
+                    <div id="aqi-mini-chart" style="height: 200px;"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-forest text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h3 class="text-2xl font-bold mb-4">🌍 ClimateAction Hub</h3>
+                <p class="text-white/80 mb-6">
+                    Empowering communities with environmental data and climate action tools
+                </p>
+                <div class="border-t border-white/20 pt-6">
+                    <p class="text-white/60 text-sm">
+                        © 2025 ClimateAction Hub. Built for environmental awareness and community action.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="main.js"></script>
+    <script>
+        // Interactive Map Page JavaScript
+        class MapPage {
+            constructor() {
+                this.map = null;
+                this.markers = {
+                    aqi: [],
+                    disasters: [],
+                    reports: [],
+                    pollution: []
+                };
+                this.layers = {
+                    aqi: true,
+                    disasters: false,
+                    reports: true,
+                    pollution: false
+                };
+                this.refreshTimer = 30;
+                this.timerInterval = null;
+                
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.initializeMap();
+                this.loadEnvironmentalData();
+                this.setupScrollReveal();
+                this.startRefreshTimer();
+                this.initializeMiniChart();
+            }
+            
+            setupEventListeners() {
+                // Layer controls
+                document.querySelectorAll('.layer-control').forEach(control => {
+                    control.addEventListener('click', (e) => {
+                        const layer = e.currentTarget.dataset.layer;
+                        this.toggleLayer(layer);
+                    });
+                });
+                
+                // Filter chips
+                document.querySelectorAll('.filter-chip').forEach(chip => {
+                    chip.addEventListener('click', (e) => {
+                        this.filterData(e.target.dataset.filter);
+                    });
+                });
+                
+                // Location search
+                document.getElementById('location-search').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.searchLocation(e.target.value);
+                    }
+                });
+                
+                // Geolocation
+                document.getElementById('geolocate-btn').addEventListener('click', () => {
+                    this.geolocateUser();
+                });
+                
+                // Mobile menu
+                const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+                const mobileMenu = document.getElementById('mobile-menu');
+                if (mobileMenuBtn && mobileMenu) {
+                    mobileMenuBtn.addEventListener('click', () => {
+                        mobileMenu.classList.toggle('hidden');
+                    });
+                }
+            }
+            
+            initializeMap() {
+                if (typeof L === 'undefined') return;
+                
+                this.map = L.map('main-map').setView([40.7128, -74.0060], 11);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }).addTo(this.map);
+                
+                // Add custom controls
+                this.addCustomControls();
+            }
+            
+            addCustomControls() {
+                // Custom zoom to user location control
+                const geolocationControl = L.control({ position: 'topleft' });
+                geolocationControl.onAdd = () => {
+                    const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+                    div.innerHTML = '<button class="bg-white p-2 rounded shadow-md hover:bg-gray-50" onclick="mapPage.geolocateUser()">📍</button>';
+                    return div;
+                };
+                geolocationControl.addTo(this.map);
+            }
+            
+            loadEnvironmentalData() {
+                this.loadAQIData();
+                this.loadDisasterData();
+                this.loadCommunityReports();
+                this.loadPollutionData();
+            }
+            
+            loadAQIData() {
+                const aqiData = [
+                    { lat: 40.7128, lng: -74.0060, value: 42, level: 'Good', location: 'Downtown Manhattan' },
+                    { lat: 40.7589, lng: -73.9851, value: 58, level: 'Moderate', location: 'Midtown' },
+                    { lat: 40.6782, lng: -73.9442, value: 35, level: 'Good', location: 'Brooklyn Heights' },
+                    { lat: 40.7282, lng: -73.9942, value: 67, level: 'Moderate', location: 'Chelsea' },
+                    { lat: 40.7505, lng: -73.9934, value: 45, level: 'Good', location: 'Times Square' }
+                ];
+                
+                aqiData.forEach(point => {
+                    const color = this.getAQIColor(point.value);
+                    const marker = L.circleMarker([point.lat, point.lng], {
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.7,
+                        radius: Math.max(8, Math.min(20, point.value / 3))
+                    });
+                    
+                    marker.bindPopup(`
+                        <div class="p-2">
+                            <h3 class="font-semibold text-gray-900">${point.location}</h3>
+                            <p class="text-sm text-gray-600">AQI: ${point.value} - ${point.level}</p>
+                            <p class="text-xs text-gray-500">Updated: ${new Date().toLocaleTimeString()}</p>
+                        </div>
+                    `);
+                    
+                    this.markers.aqi.push(marker);
+                    if (this.layers.aqi) {
+                        marker.addTo(this.map);
+                    }
+                });
+            }
+            
+            loadDisasterData() {
+                const disasterData = [
+                    { lat: 40.7282, lng: -73.9942, type: 'flood', severity: 'medium', title: 'Street Flooding', description: 'Minor flooding reported after heavy rain' },
+                    { lat: 40.7505, lng: -73.9934, type: 'pollution', severity: 'high', title: 'Industrial Emissions', description: 'Unusual smoke from industrial facility' },
+                    { lat: 40.7128, lng: -74.0060, type: 'fire', severity: 'low', title: 'Small Fire', description: 'Small vegetation fire under control' }
+                ];
+                
+                disasterData.forEach(disaster => {
+                    const color = this.getSeverityColor(disaster.severity);
+                    const icon = this.getDisasterIcon(disaster.type);
+                    
+                    const marker = L.marker([disaster.lat, disaster.lng], {
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: `<div style="background-color: ${color}; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">${icon}</div>`,
+                            iconSize: [24, 24]
+                        })
+                    });
+                    
+                    marker.bindPopup(`
+                        <div class="p-2">
+                            <h3 class="font-semibold text-gray-900">${disaster.title}</h3>
+                            <p class="text-sm text-gray-600">${disaster.description}</p>
+                            <p class="text-xs text-gray-500">Severity: ${disaster.severity.toUpperCase()}</p>
+                            <p class="text-xs text-gray-500">Reported: ${new Date().toLocaleTimeString()}</p>
+                        </div>
+                    `);
+                    
+                    this.markers.disasters.push(marker);
+                });
+            }
+            
+            loadCommunityReports() {
+                const reports = window.communityReporting ? window.communityReporting.reports : [];
+                
+                reports.forEach(report => {
+                    if (report.location) {
+                        const color = this.getSeverityColor(report.severity);
+                        const icon = this.getReportIcon(report.type);
+                        
+                        const marker = L.marker([report.location.lat, report.location.lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: `<div style="background-color: ${color}; width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px;">${icon}</div>`,
+                                iconSize: [20, 20]
+                            })
+                        });
+                        
+                        marker.bindPopup(`
+                            <div class="p-2 max-w-xs">
+                                <h3 class="font-semibold text-gray-900">${report.title}</h3>
+                                <p class="text-sm text-gray-600">${report.description}</p>
+                                <p class="text-xs text-gray-500">Type: ${report.type}</p>
+                                <p class="text-xs text-gray-500">Severity: ${report.severity.toUpperCase()}</p>
+                                <p class="text-xs text-gray-500">Status: ${report.status}</p>
+                                <p class="text-xs text-gray-500">Reported: ${new Date(report.timestamp).toLocaleDateString()}</p>
+                            </div>
+                        `);
+                        
+                        this.markers.reports.push(marker);
+                        if (this.layers.reports) {
+                            marker.addTo(this.map);
+                        }
+                    }
+                });
+            }
+            
+            loadPollutionData() {
+                const pollutionData = [
+                    { lat: 40.7282, lng: -73.9942, type: 'industrial', name: 'Industrial Zone A', impact: 'Medium' },
+                    { lat: 40.7505, lng: -73.9934, type: 'waste', name: 'Waste Treatment Plant', impact: 'Low' },
+                    { lat: 40.7128, lng: -74.0060, type: 'traffic', name: 'High Traffic Area', impact: 'High' }
+                ];
+                
+                pollutionData.forEach(source => {
+                    const color = this.getPollutionColor(source.impact);
+                    const icon = this.getPollutionIcon(source.type);
+                    
+                    const marker = L.marker([source.lat, source.lng], {
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: `<div style="background-color: ${color}; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</div>`,
+                            iconSize: [22, 22]
+                        })
+                    });
+                    
+                    marker.bindPopup(`
+                        <div class="p-2">
+                            <h3 class="font-semibold text-gray-900">${source.name}</h3>
+                            <p class="text-sm text-gray-600">Type: ${source.type}</p>
+                            <p class="text-sm text-gray-600">Impact: ${source.impact}</p>
+                        </div>
+                    `);
+                    
+                    this.markers.pollution.push(marker);
+                });
+            }
+            
+            toggleLayer(layer) {
+                this.layers[layer] = !this.layers[layer];
+                
+                // Update UI
+                const control = document.querySelector(`[data-layer="${layer}"]`);
+                control.classList.toggle('active', this.layers[layer]);
+                
+                // Update map
+                this.markers[layer].forEach(marker => {
+                    if (this.layers[layer]) {
+                        marker.addTo(this.map);
+                    } else {
+                        this.map.removeLayer(marker);
+                    }
+                });
+                
+                // Show notification
+                const layerNames = {
+                    aqi: 'Air Quality',
+                    disasters: 'Disaster Zones',
+                    reports: 'Community Reports',
+                    pollution: 'Pollution Sources'
+                };
+                
+                ClimateActionHub.showNotification(
+                    `${layerNames[layer]} layer ${this.layers[layer] ? 'enabled' : 'disabled'}`,
+                    this.layers[layer] ? 'success' : 'info'
+                );
+            }
+            
+            filterData(filter) {
+                // Update filter chips
+                document.querySelectorAll('.filter-chip').forEach(chip => {
+                    chip.classList.remove('active');
+                });
+                document.querySelector(`[data-filter="${filter}"]`).classList.add('active');
+                
+                // Show/hide markers based on filter
+                if (filter === 'all') {
+                    Object.keys(this.layers).forEach(layer => {
+                        this.layers[layer] = true;
+                        this.toggleLayer(layer);
+                    });
+                } else {
+                    // Hide all layers except the selected one
+                    Object.keys(this.layers).forEach(layer => {
+                        this.layers[layer] = (layer === filter);
+                        this.toggleLayer(layer);
+                    });
+                }
+            }
+            
+            searchLocation(query) {
+                if (!query.trim()) return;
+                
+                // Simulate geocoding (in real app, use a geocoding service)
+                const locations = {
+                    'downtown': [40.7128, -74.0060],
+                    'midtown': [40.7589, -73.9851],
+                    'brooklyn': [40.6782, -73.9442],
+                    'central park': [40.7829, -73.9654]
+                };
+                
+                const coords = locations[query.toLowerCase()];
+                if (coords) {
+                    this.map.setView(coords, 14);
+                    ClimateActionHub.showNotification(`Found location: ${query}`, 'success');
+                } else {
+                    ClimateActionHub.showNotification('Location not found. Try "downtown", "midtown", or "brooklyn"', 'warning');
+                }
+            }
+            
+            geolocateUser() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const lat = position.coords.latitude;
+                            const lng = position.coords.longitude;
+                            this.map.setView([lat, lng], 15);
+                            
+                            // Add user location marker
+                            const userMarker = L.marker([lat, lng], {
+                                icon: L.divIcon({
+                                    className: 'user-location-marker',
+                                    html: '<div style="background-color: #2E86AB; width: 16px; height: 16px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                    iconSize: [16, 16]
+                                })
+                            }).bindPopup('Your Location');
+                            
+                            userMarker.addTo(this.map);
+                            ClimateActionHub.showNotification('Location found successfully', 'success');
+                        },
+                        (error) => {
+                            ClimateActionHub.showNotification('Unable to get your location', 'warning');
+                        }
+                    );
+                } else {
+                    ClimateActionHub.showNotification('Geolocation is not supported', 'warning');
+                }
+            }
+            
+            startRefreshTimer() {
+                this.timerInterval = setInterval(() => {
+                    this.refreshTimer--;
+                    document.getElementById('refresh-timer').textContent = this.refreshTimer + 's';
+                    
+                    if (this.refreshTimer <= 0) {
+                        this.refreshData();
+                        this.refreshTimer = 30;
+                    }
+                }, 1000);
+            }
+            
+            refreshData() {
+                // Simulate data refresh
+                this.updateStatistics();
+                ClimateActionHub.showNotification('Map data refreshed', 'info');
+            }
+            
+            updateStatistics() {
+                // Simulate real-time data updates
+                const avgAqi = Math.floor(Math.random() * 20) + 35;
+                const alerts = Math.floor(Math.random() * 5) + 1;
+                const reports = Math.floor(Math.random() * 10) + 40;
+                const stations = Math.floor(Math.random() * 3) + 10;
+                
+                document.getElementById('avg-aqi').textContent = avgAqi;
+                document.getElementById('active-alerts').textContent = alerts;
+                document.getElementById('community-reports').textContent = reports;
+                document.getElementById('monitoring-stations').textContent = stations;
+                
+                // Animate updates
+                anime({
+                    targets: '.data-point',
+                    scale: [1, 1.1, 1],
+                    duration: 600,
+                    easing: 'easeInOutQuad'
+                });
+            }
+            
+            initializeMiniChart() {
+                const chart = echarts.init(document.getElementById('aqi-mini-chart'));
+                const option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        borderColor: '#1B4332',
+                        textStyle: { color: '#1B4332' }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        top: '10%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                        axisLine: { lineStyle: { color: '#1B4332' } },
+                        axisLabel: { color: '#1B4332', fontSize: 10 }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLine: { lineStyle: { color: '#1B4332' } },
+                        axisLabel: { color: '#1B4332', fontSize: 10 },
+                        splitLine: { lineStyle: { color: '#f0f0f0' } }
+                    },
+                    series: [{
+                        name: 'AQI',
+                        type: 'line',
+                        data: [38, 42, 45, 52, 48, 44, 42],
+                        smooth: true,
+                        lineStyle: { color: '#059669', width: 2 },
+                        itemStyle: { color: '#059669' },
+                        areaStyle: {
+                            color: {
+                                type: 'linear',
+                                x: 0, y: 0, x2: 0, y2: 1,
+                                colorStops: [
+                                    { offset: 0, color: 'rgba(5, 150, 105, 0.3)' },
+                                    { offset: 1, color: 'rgba(5, 150, 105, 0.05)' }
+                                ]
+                            }
+                        }
+                    }]
+                };
+                
+                chart.setOption(option);
+                
+                // Make chart responsive
+                window.addEventListener('resize', () => {
+                    chart.resize();
+                });
+            }
+            
+            getAQIColor(value) {
+                if (value <= 50) return '#059669'; // Good - Green
+                if (value <= 100) return '#D4A574'; // Moderate - Yellow
+                return '#DC2626'; // Unhealthy - Red
+            }
+            
+            getSeverityColor(severity) {
+                switch (severity) {
+                    case 'high': return '#DC2626';
+                    case 'medium': return '#D4A574';
+                    case 'low': return '#059669';
+                    default: return '#6B7280';
+                }
+            }
+            
+            getDisasterIcon(type) {
+                const icons = {
+                    flood: '🌊',
+                    fire: '🔥',
+                    pollution: '💨',
+                    earthquake: '🌍'
+                };
+                return icons[type] || '⚠️';
+            }
+            
+            getReportIcon(type) {
+                const icons = {
+                    pollution: '🏭',
+                    flooding: '🌊',
+                    deforestation: '🌳',
+                    waste: '🗑️',
+                    wildlife: '🦅',
+                    noise: '🔊'
+                };
+                return icons[type] || '⚠️';
+            }
+            
+            getPollutionColor(impact) {
+                switch (impact) {
+                    case 'High': return '#DC2626';
+                    case 'Medium': return '#D4A574';
+                    case 'Low': return '#059669';
+                    default: return '#6B7280';
+                }
+            }
+            
+            getPollutionIcon(type) {
+                const icons = {
+                    industrial: '🏭',
+                    waste: '🗑️',
+                    traffic: '🚗'
+                };
+                return icons[type] || '⚠️';
+            }
+            
+            setupScrollReveal() {
+                const observerOptions = {
+                    threshold: 0.1,
+                    rootMargin: '0px 0px -50px 0px'
+                };
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('revealed');
+                        }
+                    });
+                }, observerOptions);
+
+                document.querySelectorAll('.scroll-reveal').forEach(el => {
+                    observer.observe(el);
+                });
+            }
+        }
+        
+        // Initialize map page when DOM is loaded
+        let mapPage;
+        document.addEventListener('DOMContentLoaded', () => {
+            mapPage = new MapPage();
+        });
+    </script>
+</body>
+</html>
